@@ -8,14 +8,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  audio_session: ^0.1.11
-  rxdart: ^0.27.7
-  just_audio_mpv: ^0.1.6
-  just_audio_windows: ^0.2.0
-  # Other platform implementations below:
-  # just_audio_libwinmedia: ^0.0.4
+  audio_session: ^0.1.7
+  rxdart: ^0.27.2
   just_audio:
-    path: ../
+    path: packages/just_audio
+  just_audio_background:
+    path: ..
 
 # Uncomment when testing platform interface changes.
 # dependency_overrides:
@@ -28,11 +26,11 @@ dev_dependencies:
   # TODO: uncomment these dependencies when they have nullsafe versions.
   # flutter_driver:
   #   sdk: flutter
+  flutter_lints: ^2.0.1
   flutter_test:
     sdk: flutter
   # integration_test: ^1.0.1
-  test: ^1.16.4
-  flutter_lints: ^2.0.1
+  test: ^1.16.5
 
 flutter:
   uses-material-design: true

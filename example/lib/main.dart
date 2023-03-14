@@ -1,19 +1,19 @@
-// This example demonstrates how to play a playlist with a mix of URI and asset
-// audio sources, and the ability to add/remove/reorder playlist items.
-//
-// To run:
-//
-// flutter run -t lib/example_playlist.dart
-
 import 'package:audio_session/audio_session.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:just_audio_example/common.dart';
 import 'package:rxdart/rxdart.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
+  );
+  runApp(const MyApp());
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -22,61 +22,103 @@ class MyApp extends StatefulWidget {
   MyAppState createState() => MyAppState();
 }
 
-class MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class MyAppState extends State<MyApp> {
+  static int _nextMediaId = 0;
   late AudioPlayer _player;
-  final _playlist = ConcatenatingAudioSource(children: [
-    // Remove this audio source from the Windows and Linux version because it's not supported yet
-    if (kIsWeb ||
-        ![TargetPlatform.windows, TargetPlatform.linux]
-            .contains(defaultTargetPlatform))
-      ClippingAudioSource(
-        start: const Duration(seconds: 60),
-        end: const Duration(seconds: 90),
-        child: AudioSource.uri(Uri.parse(
-            "https://s3.amazonaws.com/scifri-episodes/scifri20181123-episode.mp3")),
-        tag: AudioMetadata(
-          album: "Science Friday",
-          title: "A Salute To Head-Scratching Science (30 seconds)",
-          artwork:
-              "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
-        ),
-      ),
-    AudioSource.uri(
+  final _playlist = [
+    SoundCloudSource(
       Uri.parse(
-          "https://s3.amazonaws.com/scifri-episodes/scifri20181123-episode.mp3"),
-      tag: AudioMetadata(
+          "https://api-v2.soundcloud.com/media/soundcloud:tracks:250711755/ee0fc8b3-9e49-4433-8ba4-b34462f592ba/stream/hls?client_id=SDvic69dtCia3c4tYqKIhC6j7UfTPHLC"),
+      tag: MediaItem(
+        id: 'medioas1',
         album: "Science Friday",
-        title: "A Salute To Head-Scratching Science",
-        artwork:
-            "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
+        title: "The Chainsmokers - Don't Let Me Down (Illenium Remix)",
+        artUri: Uri.parse("https://i1.sndcdn.com/artworks-000150027827-4exjil-large.jpg"),
       ),
     ),
-    AudioSource.uri(
-      Uri.parse("https://s3.amazonaws.com/scifri-segments/scifri201711241.mp3"),
-      tag: AudioMetadata(
+    SoundCloudSource(
+      Uri.parse(
+          "https://api-v2.soundcloud.com/media/soundcloud:tracks:110460584/92abedff-cc58-4956-9dbf-727265842e31/stream/hls?client_id=SDvic69dtCia3c4tYqKIhC6j7UfTPHLC"),
+      tag: MediaItem(
+        id: '43140',
         album: "Science Friday",
-        title: "From Cat Rheology To Operatic Incompetence",
-        artwork:
-            "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
+        title: "Black Butler Opening Monochrome No Kiss",
+        artUri: Uri.parse("https://i1.sndcdn.com/artworks-000057789697-pgn548-large.jpg"),
       ),
     ),
-    AudioSource.uri(
-      Uri.parse("asset:///audio/nature.mp3"),
-      tag: AudioMetadata(
-        album: "Public Domain",
-        title: "Nature Sounds",
-        artwork:
-            "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
+    SoundCloudSource(
+      Uri.parse(
+          "https://api-v2.soundcloud.com/media/soundcloud:tracks:188792247/1ac589c8-9719-4ee3-bb46-c654193dd27e/stream/hls?client_id=SDvic69dtCia3c4tYqKIhC6j7UfTPHLC"),
+      tag: MediaItem(
+        id: '43075',
+        album: "Science Friday",
+        title: "JONI AGUNG ILUH MADE RAI KORAN (medley)",
+        artUri: Uri.parse("https://i1.sndcdn.com/artworks-000105167387-jw1pmo-large.jpg"),
       ),
     ),
-  ]);
+    SoundCloudSource(
+      Uri.parse(
+          "https://api-v2.soundcloud.com/media/soundcloud:tracks:196243992/0a3a7084-b7cf-420b-b319-8a9615e392ee/stream/hls?client_id=SDvic69dtCia3c4tYqKIhC6j7UfTPHLC"),
+      tag: MediaItem(
+        id: '840',
+        album: "Science Friday",
+        title: "Parasyte - Opening - Let Me Hear by \"Fear, and Loathing in Las Vegas\"",
+        artUri: Uri.parse("https://i1.sndcdn.com/artworks-000110274896-tj987l-large.jpg"),
+      ),
+    ),
+  ];
+  // ConcatenatingAudioSource(children: [
+  //   ClippingAudioSource(
+  //     start: const Duration(seconds: 60),
+  //     end: const Duration(seconds: 90),
+  //     child: AudioSource.uri(Uri.parse(
+  //         "https://s3.amazonaws.com/scifri-episodes/scifri20181123-episode.mp3")),
+  //     tag: MediaItem(
+  //       id: '${_nextMediaId++}',
+  //       album: "Science Friday",
+  //       title: "A Salute To Head-Scratching Science (30 seconds)",
+  //       artUri: Uri.parse(
+  //           "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg"),
+  //     ),
+  //   ),
+  //   SoundCloudSource(
+  //     Uri.parse(
+  //         "https://api-v2.soundcloud.com/media/soundcloud:tracks:250711755/ee0fc8b3-9e49-4433-8ba4-b34462f592ba/stream/hls?client_id=SDvic69dtCia3c4tYqKIhC6j7UfTPHLC"),
+  //     tag: MediaItem(
+  //       id: 'medioas1',
+  //       album: "Science Friday",
+  //       title: "A Salute To Head-Scratching Science",
+  //       artUri: Uri.parse(
+  //           "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg"),
+  //     ),
+  //   ),
+  //   AudioSource.uri(
+  //     Uri.parse("https://s3.amazonaws.com/scifri-segments/scifri201711241.mp3"),
+  //     tag: MediaItem(
+  //       id: '${_nextMediaId++}',
+  //       album: "Science Friday",
+  //       title: "From Cat Rheology To Operatic Incompetence",
+  //       artUri: Uri.parse(
+  //           "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg"),
+  //     ),
+  //   ),
+  //   AudioSource.uri(
+  //     Uri.parse("asset:///audio/nature.mp3"),
+  //     tag: MediaItem(
+  //       id: '${_nextMediaId++}',
+  //       album: "Public Domain",
+  //       title: "Nature Sounds",
+  //       artUri: Uri.parse(
+  //           "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg"),
+  //     ),
+  //   ),
+  // ]);
   int _addedCount = 0;
-  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  int index = 0;
 
   @override
   void initState() {
     super.initState();
-    ambiguate(WidgetsBinding.instance)!.addObserver(this);
     _player = AudioPlayer();
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.black,
@@ -88,73 +130,45 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.speech());
     // Listen to errors during playback.
-    _player.playbackEventStream.listen((event) {},
-        onError: (Object e, StackTrace stackTrace) {
+    _player.playerStateStream.listen((event) async {
+      if (event.processingState == ProcessingState.completed) {
+        index++;
+        if (index >= _playlist.length) index = 0;
+        skipToNext();
+      }
+    }, onError: (Object e, StackTrace stackTrace) {
       print('A stream error occurred: $e');
     });
     try {
-      // Preloading audio is not currently supported on Linux.
-      await _player.setAudioSource(_playlist,
-          preload: kIsWeb || defaultTargetPlatform != TargetPlatform.linux);
-    } catch (e) {
-      // Catch load errors: 404, invalid url...
-      print("Error loading audio source: $e");
+      await _player.setAudioSource(_playlist[index]);
+    } catch (e, stackTrace) {
+      // Catch load errors: 404, invalid url ...
+      print("Error loading playlist: $e");
+      print(stackTrace);
     }
-    // Show a snackbar whenever reaching the end of an item in the playlist.
-    _player.positionDiscontinuityStream.listen((discontinuity) {
-      if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance) {
-        _showItemFinished(discontinuity.previousEvent.currentIndex);
-      }
-    });
-    _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) {
-        _showItemFinished(_player.currentIndex);
-      }
-    });
   }
 
-  void _showItemFinished(int? index) {
-    if (index == null) return;
-    final sequence = _player.sequence;
-    if (sequence == null) return;
-    final source = sequence[index];
-    final metadata = source.tag as AudioMetadata;
-    _scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
-      content: Text('Finished playing ${metadata.title}'),
-      duration: const Duration(seconds: 1),
-    ));
+  Future<void> skipToNext() async {
+    await _player.setAudioSource(_playlist[index]);
+    _player.play();
   }
 
   @override
   void dispose() {
-    ambiguate(WidgetsBinding.instance)!.removeObserver(this);
     _player.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      // Release the player's resources when not in use. We use "stop" so that
-      // if the app resumes later, it will still remember what position to
-      // resume from.
-      _player.stop();
-    }
-  }
-
-  Stream<PositionData> get _positionDataStream =>
-      Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
-          _player.positionStream,
-          _player.bufferedPositionStream,
-          _player.durationStream,
-          (position, bufferedPosition, duration) => PositionData(
-              position, bufferedPosition, duration ?? Duration.zero));
+  Stream<PositionData> get _positionDataStream => Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
+      _player.positionStream,
+      _player.bufferedPositionStream,
+      _player.durationStream,
+      (position, bufferedPosition, duration) => PositionData(position, bufferedPosition, duration ?? Duration.zero));
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: _scaffoldMessengerKey,
       home: Scaffold(
         body: SafeArea(
           child: Column(
@@ -169,19 +183,17 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     if (state?.sequence.isEmpty ?? true) {
                       return const SizedBox();
                     }
-                    final metadata = state!.currentSource!.tag as AudioMetadata;
+                    final metadata = state!.currentSource!.tag as MediaItem;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child:
-                                Center(child: Image.network(metadata.artwork)),
+                            child: Center(child: Image.network(metadata.artUri.toString())),
                           ),
                         ),
-                        Text(metadata.album,
-                            style: Theme.of(context).textTheme.headline6),
+                        Text(metadata.album!, style: Theme.of(context).textTheme.headline6),
                         Text(metadata.title),
                       ],
                     );
@@ -196,8 +208,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   return SeekBar(
                     duration: positionData?.duration ?? Duration.zero,
                     position: positionData?.position ?? Duration.zero,
-                    bufferedPosition:
-                        positionData?.bufferedPosition ?? Duration.zero,
+                    bufferedPosition: positionData?.bufferedPosition ?? Duration.zero,
                     onChangeEnd: (newPosition) {
                       _player.seek(newPosition);
                     },
@@ -225,9 +236,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       return IconButton(
                         icon: icons[index],
                         onPressed: () {
-                          _player.setLoopMode(cycleModes[
-                              (cycleModes.indexOf(loopMode) + 1) %
-                                  cycleModes.length]);
+                          _player.setLoopMode(cycleModes[(cycleModes.indexOf(loopMode) + 1) % cycleModes.length]);
                         },
                       );
                     },
@@ -269,7 +278,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     return ReorderableListView(
                       onReorder: (int oldIndex, int newIndex) {
                         if (oldIndex < newIndex) newIndex--;
-                        _playlist.move(oldIndex, newIndex);
+                        // _playlist.move(oldIndex, newIndex);
                       },
                       children: [
                         for (var i = 0; i < sequence.length; i++)
@@ -284,12 +293,10 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
                               ),
                             ),
                             onDismissed: (dismissDirection) {
-                              _playlist.removeAt(i);
+                              // _playlist.removeAt(i);
                             },
                             child: Material(
-                              color: i == state!.currentIndex
-                                  ? Colors.grey.shade300
-                                  : null,
+                              color: i == state!.currentIndex ? Colors.grey.shade300 : null,
                               child: ListTile(
                                 title: Text(sequence[i].tag.title as String),
                                 onTap: () {
@@ -309,15 +316,16 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.add),
           onPressed: () {
-            _playlist.add(AudioSource.uri(
-              Uri.parse("asset:///audio/nature.mp3"),
-              tag: AudioMetadata(
-                album: "Public Domain",
-                title: "Nature Sounds ${++_addedCount}",
-                artwork:
-                    "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg",
-              ),
-            ));
+            // _playlist.add(AudioSource.uri(
+            //   Uri.parse("asset:///audio/nature.mp3"),
+            //   tag: MediaItem(
+            //     id: '${_nextMediaId++}',
+            //     album: "Public Domain",
+            //     title: "Nature Sounds ${++_addedCount}",
+            //     artUri: Uri.parse(
+            //         "https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg"),
+            //   ),
+            // ));
           },
         ),
       ),
@@ -344,7 +352,6 @@ class ControlButtons extends StatelessWidget {
               divisions: 10,
               min: 0.0,
               max: 1.0,
-              value: player.volume,
               stream: player.volumeStream,
               onChanged: player.setVolume,
             );
@@ -363,8 +370,7 @@ class ControlButtons extends StatelessWidget {
             final playerState = snapshot.data;
             final processingState = playerState?.processingState;
             final playing = playerState?.playing;
-            if (processingState == ProcessingState.loading ||
-                processingState == ProcessingState.buffering) {
+            if (processingState == ProcessingState.loading || processingState == ProcessingState.buffering) {
               return Container(
                 margin: const EdgeInsets.all(8.0),
                 width: 64.0,
@@ -375,7 +381,9 @@ class ControlButtons extends StatelessWidget {
               return IconButton(
                 icon: const Icon(Icons.play_arrow),
                 iconSize: 64.0,
-                onPressed: player.play,
+                onPressed: () async {
+                  player.play();
+                },
               );
             } else if (processingState != ProcessingState.completed) {
               return IconButton(
@@ -387,8 +395,7 @@ class ControlButtons extends StatelessWidget {
               return IconButton(
                 icon: const Icon(Icons.replay),
                 iconSize: 64.0,
-                onPressed: () => player.seek(Duration.zero,
-                    index: player.effectiveIndices!.first),
+                onPressed: () => player.seek(Duration.zero, index: player.effectiveIndices!.first),
               );
             }
           },
@@ -403,8 +410,7 @@ class ControlButtons extends StatelessWidget {
         StreamBuilder<double>(
           stream: player.speedStream,
           builder: (context, snapshot) => IconButton(
-            icon: Text("${snapshot.data?.toStringAsFixed(1)}x",
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            icon: Text("${snapshot.data?.toStringAsFixed(1)}x", style: const TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () {
               showSliderDialog(
                 context: context,
@@ -412,7 +418,6 @@ class ControlButtons extends StatelessWidget {
                 divisions: 10,
                 min: 0.5,
                 max: 1.5,
-                value: player.speed,
                 stream: player.speedStream,
                 onChanged: player.setSpeed,
               );
@@ -422,16 +427,4 @@ class ControlButtons extends StatelessWidget {
       ],
     );
   }
-}
-
-class AudioMetadata {
-  final String album;
-  final String title;
-  final String artwork;
-
-  AudioMetadata({
-    required this.album,
-    required this.title,
-    required this.artwork,
-  });
 }
